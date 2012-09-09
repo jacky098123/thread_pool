@@ -14,4 +14,4 @@ fi
 
 rm -f ../log/*
 
-./test_thread_pool -d
+./test_thread_pool
