@@ -42,6 +42,7 @@ install:
 	install $(LIB_POOL) $(INSTALL_DIR)/lib
 	install -m 666 pool_common.hpp $(INSTALL_DIR)/include/
 	install -m 666 request.hpp $(INSTALL_DIR)/include/
+	install -m 666 config.hpp $(INSTALL_DIR)/include/
 
 
 clean: 
