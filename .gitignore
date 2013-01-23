@@ -15,3 +15,5 @@
 
 /log
 *.log
+
+/wordbreak_service/wordbreak_service
