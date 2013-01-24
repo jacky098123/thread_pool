@@ -13,6 +13,7 @@ then
     mkdir $LOG_PATH
 fi
 
+sleep 1
 rm -f ../log/*
 
 ./wordbreak_service -d

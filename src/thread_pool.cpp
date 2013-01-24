@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <libgen.h>
 #include <string.h>
 #include <limits.h>
@@ -223,19 +224,21 @@ void* thread_main(void* arg) {
     socklen_t           client_len;
     int                 ret;
 
+    BusinessFunction    handler;
+    int                 http_code;
+
     for (;;) {
         pthread_mutex_lock(&g_listen_mutex);
         int fd = accept(g_listen_socket, &client_socket, &client_len);
         if (fd < 0) {
-            LOG4CPLUS_ERROR(POOL_LOG, "accept invalid fd: " << fd << ", thread no: " << thread_info->seq_no);
-            continue;
+            LOG4CPLUS_ERROR(POOL_LOG, "accept error: " << strerror(errno) << ", thread no: " << thread_info->seq_no);
             pthread_mutex_unlock(&g_listen_mutex);
+            continue;
         }
         function_context.listen_sequence    = g_listen_sequence++;
         function_context.fd                 = fd;
         pthread_mutex_unlock(&g_listen_mutex);
-        LOG4CPLUS_DEBUG(POOL_LOG, "thread seq no: " << thread_info->seq_no << ", listern seq: " 
-                        << function_context.listen_sequence);
+        LOG4CPLUS_DEBUG(POOL_LOG, "thread seq no: " << thread_info->seq_no << ", listern seq: " << function_context.listen_sequence);
 
         // read http
         if ((ret = read_http_data(function_context)) < 0) {
@@ -245,16 +248,23 @@ void* thread_main(void* arg) {
         }
 
         // handler
-        Request             request(function_context.read_buffer, function_context.read_current);
+        Request     request(function_context.read_buffer, function_context.read_current);
         LOG4CPLUS_DEBUG(POOL_LOG, "path: " << request.path);
-        BusinessFunction    handler = find_function(request.path);
-        int                 http_code = handler(request, function_context);
+        handler     = find_function(request.path);
+        http_code   = handler(request, function_context);
 
         // send http
         if ((ret = HttpSend(function_context.fd, http_code, function_context.write_buffer, 
                             function_context.write_current, SOCKET_READ_TIMEOUT)) < 0) {
             LOG4CPLUS_ERROR(POOL_LOG, "send_data err: " << ret);
-            continue;
+            goto FINISH;
+        }
+
+        FINISH:
+        LOG4CPLUS_DEBUG(POOL_LOG, "FINISH thread seq no: " << thread_info->seq_no << ", listern seq: " << function_context.listen_sequence);
+        if (function_context.fd > 0) {
+            LOG4CPLUS_DEBUG(POOL_LOG, "close fd: " << function_context.fd);
+            close(function_context.fd);
         }
     }
 

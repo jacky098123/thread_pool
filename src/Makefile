@@ -1,5 +1,5 @@
 ifndef INSTALL_DIR
-INSTALL_DIR   = /usr/local/thread_pool
+INSTALL_DIR   = ..
 endif
 
 CC	        = g++
