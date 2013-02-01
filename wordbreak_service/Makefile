@@ -1,11 +1,11 @@
 CC	        = g++
 
 INC	        = -I. -I/usr/local/log4cplus/include -I../include 
-INC         += -I/home/yangrq/cheetah/utility/kxutil3/include
+INC         += -I/home/yangrq/github/kxutil4/include
 INC         += -I/home/yangrq/cheetah/src/wordbreak/include
 
 LDFLAGS	    = -g -DDEBUG -L/usr/local/log4cplus/lib -llog4cplus  -L../lib -lthread_pool 
-LDFLAGS     += -L/home/yangrq/cheetah/utility/kxutil3/lib -lkxutil3
+LDFLAGS     += -L/home/yangrq/github/kxutil4/lib -lkxutil4
 LDFLAGS     += -L/home/yangrq/cheetah/src/wordbreak/lib -lwordbreak
 LDFLAGS     += -lpthread -ldl 
 
