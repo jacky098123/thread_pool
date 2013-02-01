@@ -5,15 +5,17 @@ endif
 CC	        = g++
 
 INC         = -I/usr/local/log4cplus/include
+INC         += -I/home/yangrq/github/kxutil4/include
 
 LDFLAGS	    = -L/usr/local/log4cplus/lib -llog4cplus
+LDFLAGS     += -L/home/yangrq/github/kxutil4/lib -lkxutil4
 LDFLAGS     += -lpthread
 
 CPPFLAGS    = -Wall -DDEBUG -g $(INC)
 
 OBJ_DIR     =   .obj
 
-LIBCPPFILES = commu_socket.cpp  config.cpp  thread_pool.cpp  request.cpp  text.cpp
+LIBCPPFILES = commu_socket.cpp  config.cpp  thread_pool.cpp  request.cpp 
 TESTCPPFILES= $(LIBCPPFILES) business_server.cpp
 LIBOBJFILES = $(LIBCPPFILES:%.cpp=$(OBJ_DIR)/%.o)
 TESTOBJFILES= $(TESTCPPFILES:%.cpp=$(OBJ_DIR)/%.o)

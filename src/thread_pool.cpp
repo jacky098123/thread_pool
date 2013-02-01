@@ -248,9 +248,10 @@ void* thread_main(void* arg) {
         }
 
         // handler
-        Request     request(function_context.read_buffer, function_context.read_current);
-        LOG4CPLUS_DEBUG(POOL_LOG, "path: " << request.path);
-        handler     = find_function(request.path);
+        Request     request;
+        request.Initialize(function_context.read_buffer, function_context.read_current);
+        LOG4CPLUS_DEBUG(POOL_LOG, "path: " << request.path_);
+        handler     = find_function(request.path_);
         http_code   = handler(request, function_context);
 
         // send http
