@@ -10,7 +10,6 @@
 #include <log4cplus/configurator.h>
 
 #include "request.hpp"
-#include "config.hpp"
 
 #define DECLARE_POOL_LOG    log4cplus::Logger pool_log = log4cplus::Logger::getInstance("pool")
 #define POOL_LOG            pool_log

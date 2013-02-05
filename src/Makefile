@@ -15,7 +15,7 @@ CPPFLAGS    = -Wall -DDEBUG -g $(INC)
 
 OBJ_DIR     =   .obj
 
-LIBCPPFILES = commu_socket.cpp  config.cpp  thread_pool.cpp  request.cpp 
+LIBCPPFILES = commu_socket.cpp  thread_pool.cpp  request.cpp 
 TESTCPPFILES= $(LIBCPPFILES) business_server.cpp
 LIBOBJFILES = $(LIBCPPFILES:%.cpp=$(OBJ_DIR)/%.o)
 TESTOBJFILES= $(TESTCPPFILES:%.cpp=$(OBJ_DIR)/%.o)
@@ -44,7 +44,6 @@ install:
 	install $(LIB_POOL) $(INSTALL_DIR)/lib
 	install -m 666 pool_common.hpp $(INSTALL_DIR)/include/
 	install -m 666 request.hpp $(INSTALL_DIR)/include/
-	install -m 666 config.hpp $(INSTALL_DIR)/include/
 
 
 clean: 

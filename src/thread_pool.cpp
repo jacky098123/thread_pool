@@ -19,7 +19,8 @@
 #include <log4cplus/logger.h>   
 #include <log4cplus/configurator.h>
 
-#include "config.hpp"
+#include "sys/config.hpp"
+
 #include "pool_common.hpp"
 #include "commu_socket.hpp"
 #include "request.hpp"
@@ -145,9 +146,9 @@ int server_socket() {
 
     DECLARE_POOL_LOG;
 
-    Config::Instance()->GetConfStr("general", "ip_address", ip_address);
-    Config::Instance()->GetConfInt("general", "port", &listen_port, DEFAULT_PORT);
-    Config::Instance()->GetConfInt("general", "backlog_number", &backlog_number, DEFAULT_BACKLOG_NUMBER);
+    kxutil4::Config::Instance()->GetStr("general", "ip_address", ip_address);
+    kxutil4::Config::Instance()->GetInt("general", "port", &listen_port, DEFAULT_PORT);
+    kxutil4::Config::Instance()->GetInt("general", "backlog_number", &backlog_number, DEFAULT_BACKLOG_NUMBER);
 
     memset((void*)&sin, 0x00, sizeof(sin));
     sin.sin_family              = AF_INET;
@@ -177,30 +178,13 @@ int read_http_data(FunctionContext_t &context) {
 
     DECLARE_POOL_LOG;
 
-    while (true) {
-        if (context.read_current == context.read_length) {
-            size_t new_size = context.read_length * 1.5;
-            char* new_buffer = (char*)realloc(context.read_buffer, new_size);
-            if (new_buffer == NULL) {
-                return -1;
-            }
-            context.read_length = new_size;
-            context.read_buffer = new_buffer;
-        }
-
-        int length = HttpReceive(context.fd, context.read_buffer + context.read_current, 
-                                 context.read_length - context.read_current, SOCKET_READ_TIMEOUT);
-        LOG4CPLUS_DEBUG(POOL_LOG, "HttpReceive length: " << length);
-        if (length < 0) {
-            LOG4CPLUS_ERROR(POOL_LOG, "HttpReceive error: " << length);
-            return length;
-        }
-        context.read_current += length;
-        
-        if (strstr(context.read_buffer, http_head_terminal) != NULL) {
-           return context.read_current;
-        } 
+    int ret = HttpReceive(context.fd, &(context.read_buffer), &(context.read_length), 0);
+    LOG4CPLUS_INFO(POOL_LOG, "HttpReceive ret: " << ret);
+    if (ret < 0) {
+        LOG4CPLUS_ERROR(POOL_LOG, "HttpReceive error: " << ret);
     }
+    context.read_current = ret;
+    return ret;
 }
 
 void* thread_main(void* arg) {
@@ -250,7 +234,7 @@ void* thread_main(void* arg) {
         // handler
         Request     request;
         request.Initialize(function_context.read_buffer, function_context.read_current);
-        LOG4CPLUS_DEBUG(POOL_LOG, "path: " << request.path_);
+        LOG4CPLUS_DEBUG(POOL_LOG, "Request path: " << request.path_ << ", body length: " << request.body_.size());
         handler     = find_function(request.path_);
         http_code   = handler(request, function_context);
 
@@ -276,7 +260,7 @@ void* thread_main(void* arg) {
 int thread_pool_initialize() {
     DECLARE_POOL_LOG;
 
-    Config::Instance()->GetConfInt("general", "thread_number", &g_thread_number, DEFAULT_THREAD_NUMBER);
+    kxutil4::Config::Instance()->GetInt("general", "thread_number", &g_thread_number, DEFAULT_THREAD_NUMBER);
 
     g_thread_info = (ThreadInfo_t*)malloc((g_thread_number) * sizeof(ThreadInfo_t));
     memset(g_thread_info, 0x00, g_thread_number*sizeof(ThreadInfo_t));
@@ -346,13 +330,13 @@ int main(int argc, char** argv) {
     LOG4CPLUS_DEBUG(POOL_LOG, "");
     LOG4CPLUS_DEBUG(POOL_LOG, "       --RUNNING--        ");
 
-    Config::Instance()->LoadFile(path + "/../conf/" + program_name + ".ini");
-    Config::Instance()->DumpInfo();
+    kxutil4::Config::Instance()->LoadFile(path + "/../conf/" + program_name + ".ini");
+    kxutil4::Config::Instance()->DumpInfo();
 
     int     read_buffer_length;
     int     write_buffer_length;
-    Config::Instance()->GetConfInt("general", "read_buffer_length", &read_buffer_length, DEFAULT_READ_BUFFER_SIZE);
-    Config::Instance()->GetConfInt("general", "write_buffer_length", &write_buffer_length, DEFAULT_WRITE_BUFFER_SIZE);
+    kxutil4::Config::Instance()->GetInt("general", "read_buffer_length", &read_buffer_length, DEFAULT_READ_BUFFER_SIZE);
+    kxutil4::Config::Instance()->GetInt("general", "write_buffer_length", &write_buffer_length, DEFAULT_WRITE_BUFFER_SIZE);
 
     // server socket
     ret = server_socket();

@@ -98,5 +98,5 @@ void Request::parse_url(const char* buf, int length) {
         return;
     }
 
-    this->body_ = string(pbody + 4);
+    this->body_ = string(pbody + 4, length - (pbody-buf) - 4);
 }

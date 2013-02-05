@@ -262,66 +262,94 @@ int Receive(int sock, char *buffer, int size, int timeout)
 		}
 		
 		recvSize += receiveResult;
-	}	
+	}
 	return size;
 }
 
-// only handle GET request
-int HttpReceive(int sock, char *buffer, int size, int timeout) {
-	int receiveResult;
-	int recvSize = 0;
+// only handle
+int HttpReceive(int sock, char **buffer, int *buffer_size, int timeout) {
+	int receive_result;
+	int recv_size = 0;
+    int body_length = -1;
 
-	if (buffer == NULL)
-		return 0;
+    enum HTTP_METHOD http_method = METHOD_NONE;
+
+	if (buffer == NULL || *buffer == NULL)
+		return -1;
 
 	if (timeout <= 0) {
 		timeout = DEFAULT_TIMEOUT;
 	}
 
-	while (recvSize < size) {
-		receiveResult = CheckSocketRecvTimeOut(sock, timeout);
-		if(receiveResult < 0) {
-			if (recvSize <= 0) {
-				return SOCKET_ERROR;
-			} else {
-				return recvSize;
-			}
-		} else if (receiveResult == 0) {
-			if (recvSize <= 0) {
-				return SOCKET_TIMEOUT;
-			} else {
-				return recvSize;
-			}
+	while (1) {
+		receive_result = CheckSocketRecvTimeOut(sock, timeout);
+		if(receive_result < 0) {
+            return SOCKET_ERROR;
+		} else if (receive_result == 0) {
+            return SOCKET_TIMEOUT;
 		}
 
-		receiveResult = recv(sock, buffer+recvSize, size-recvSize, MSG_DONTWAIT);
-
-		if (receiveResult == 0) {
-			if (recvSize <= 0) {
-				return SOCKET_CLOSED;
-			} else {
-				return recvSize;
-			}
-		} else if (receiveResult < 0) {
+		receive_result = recv(sock, *buffer+recv_size, *buffer_size-recv_size, MSG_DONTWAIT);
+		if (receive_result == 0) {
+            return SOCKET_CLOSED;
+		} else if (receive_result < 0) {
 			if (EAGAIN == errno) {
 				continue;
 			}
-			if (recvSize <= 0) {
-				return SOCKET_ERROR;
-			} else  {
-				return recvSize;
-			}
+            return SOCKET_ERROR;
 		}
 
-		recvSize += receiveResult;
+		recv_size += receive_result;
+
+        if (recv_size >= *buffer_size) {
+            size_t new_size = *buffer_size * 1.5;
+            char* new_buffer = (char*)realloc(*buffer, new_size);
+            if (new_buffer == NULL) {
+                return -1000;
+            }
+            *buffer_size = new_size;
+            *buffer = new_buffer;
+        }
 
 		// check the http head terminal
-		char *p = strstr(buffer, http_head_terminal);
-		if (p != NULL) {
-			return recvSize;
-		}
+		char *p = strstr(*buffer, http_head_terminal);
+        if (p == NULL) {
+            continue;
+        }
+
+        if (http_method == METHOD_NONE) {
+            if (strncmp(*buffer, "GET", 3) == 0)
+                http_method = METHOD_GET;
+            else if (strncmp(*buffer, "POST", 4) == 0)
+                http_method = METHOD_POST;
+            else
+                http_method = METHOD_OTHER;
+        }
+
+		if (http_method == METHOD_GET || http_method == METHOD_OTHER) {
+			return recv_size;
+		} else if (http_method == METHOD_POST) {
+            if (body_length < 0) {
+                const char *CONTENT_LENGTH = "Content-Length:";
+                char *content_length = strstr(*buffer, CONTENT_LENGTH);
+                if (content_length == NULL) {
+                    continue;
+                }
+                content_length += strlen(CONTENT_LENGTH);
+                while (*content_length == ' ')
+                    content_length++;
+
+                body_length = atoi(content_length);
+            }
+
+            if (recv_size >= *buffer_size || recv_size >= body_length + 4 + (p-*buffer)) {
+                return recv_size;
+            }
+        } else {
+			return recv_size;
+        }
 	}
-    return recvSize;
+    return recv_size;
 }
 
 static size_t add_http_200(char** header_buffer, int content_len)
